@@ -541,9 +541,6 @@ private static void createBudgetFrame(JPanel contentPanel) {
 }
 
 
-
-
-
 private static void deleteBudget(int budgetId) {
     try (Connection connection = getConnection()) {
         connection.setAutoCommit(false);
