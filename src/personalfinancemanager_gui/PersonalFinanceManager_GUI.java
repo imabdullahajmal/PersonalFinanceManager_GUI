@@ -85,7 +85,7 @@ public class PersonalFinanceManager_GUI {
     }
 
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Swing UI");
+        JFrame frame = new JFrame("Personal Finance Manager");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(600, 600);
 
