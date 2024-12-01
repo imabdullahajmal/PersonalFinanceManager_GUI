@@ -805,49 +805,71 @@ public class PersonalFinanceManager_GUI {
         }
     }
 
-    private static void showSettings(JPanel contentPanel) {
-        JPanel settingsPanel = new JPanel();
-        settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
+private static void showSettings(JPanel contentPanel) {
+    contentPanel.removeAll();
 
-        JButton deleteUserDataButton = new JButton("Delete All User Data");
-        JButton sendFeedbackButton = new JButton("Send Feedback");
+    JPanel settingsContainer = new JPanel(new GridBagLayout());
+    settingsContainer.setBackground(Color.LIGHT_GRAY);
 
-        deleteUserDataButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int confirmation = JOptionPane.showConfirmDialog(
-                        null,
-                        "Are you sure you want to delete all your data? This action cannot be reversed.",
-                        "Delete Confirmation",
-                        JOptionPane.YES_NO_OPTION
-                );
+    JPanel settingsBox = new JPanel();
+    settingsBox.setLayout(new BorderLayout());
+    settingsBox.setPreferredSize(new Dimension(400, 300));
+    settingsBox.setBackground(Color.WHITE);
+    settingsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
 
-                if (confirmation == JOptionPane.YES_OPTION) {
-                    deleteAllUserData();
-                    JOptionPane.showMessageDialog(null, "All user data has been deleted successfully.");
-                }
+    JLabel headingLabel = new JLabel("Settings", SwingConstants.CENTER);
+    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+    headingLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+
+    JPanel buttonsPanel = new JPanel();
+    buttonsPanel.setLayout(new GridLayout(2, 1, 10, 10));
+    buttonsPanel.setBackground(Color.WHITE);
+    buttonsPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+
+    JButton deleteUserDataButton = new JButton("Delete All User Data");
+    JButton sendFeedbackButton = new JButton("Send Feedback");
+
+    deleteUserDataButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            int confirmation = JOptionPane.showConfirmDialog(
+                    null,
+                    "Are you sure you want to delete all your data? This action cannot be reversed.",
+                    "Delete Confirmation",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirmation == JOptionPane.YES_OPTION) {
+                deleteAllUserData();
+                JOptionPane.showMessageDialog(null, "All user data has been deleted successfully.");
             }
-        });
+        }
+    });
 
-        sendFeedbackButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    Desktop.getDesktop().browse(new URI("https://example.com/feedback"));
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Unable to open the feedback page.");
-                }
+    sendFeedbackButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+                Desktop.getDesktop().browse(new URI("https://example.com/feedback"));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Unable to open the feedback page.");
             }
-        });
+        }
+    });
 
-        settingsPanel.add(deleteUserDataButton);
-        settingsPanel.add(sendFeedbackButton);
+    buttonsPanel.add(deleteUserDataButton);
+    buttonsPanel.add(sendFeedbackButton);
 
-        contentPanel.add(settingsPanel, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
-    }
+    settingsBox.add(headingLabel, BorderLayout.NORTH);
+    settingsBox.add(buttonsPanel, BorderLayout.CENTER);
+
+    settingsContainer.add(settingsBox);
+
+    contentPanel.add(settingsContainer, BorderLayout.CENTER);
+    contentPanel.revalidate();
+    contentPanel.repaint();
+}
 
     private static void deleteAllUserData() {
         try (Connection connection = getConnection()) {
