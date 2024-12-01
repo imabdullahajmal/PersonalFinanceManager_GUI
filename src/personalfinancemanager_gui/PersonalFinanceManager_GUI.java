@@ -164,136 +164,135 @@ public class PersonalFinanceManager_GUI {
         frame.setVisible(true);
     }
 
-private static void showTransactions(JPanel contentPanel) {
-    JPanel transactionsPanel = new JPanel();
-    transactionsPanel.setLayout(new BorderLayout());
+    private static void showTransactions(JPanel contentPanel) {
+        JPanel transactionsPanel = new JPanel();
+        transactionsPanel.setLayout(new BorderLayout());
 
-    JPanel transactionsBox = new JPanel();
-    transactionsBox.setLayout(new BorderLayout());
-    transactionsBox.setBackground(Color.WHITE);
-    transactionsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-    transactionsBox.setPreferredSize(new Dimension(600, 500));
+        JPanel transactionsBox = new JPanel();
+        transactionsBox.setLayout(new BorderLayout());
+        transactionsBox.setBackground(Color.WHITE);
+        transactionsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+        transactionsBox.setPreferredSize(new Dimension(600, 500));
 
-    JPanel headingPanel = new JPanel();
-    JLabel headingLabel = new JLabel("Transactions", SwingConstants.CENTER);
-    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
-    headingPanel.add(headingLabel);
-    headingPanel.setBackground(Color.WHITE);
+        JPanel headingPanel = new JPanel();
+        JLabel headingLabel = new JLabel("Transactions", SwingConstants.CENTER);
+        headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        headingPanel.add(headingLabel);
+        headingPanel.setBackground(Color.WHITE);
 
-    JPanel addTransactionButtonPanel = new JPanel();
-    addTransactionButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-    JButton addTransactionButton = new JButton("Add Transaction");
-    addTransactionButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            createTransactionFrame(contentPanel);
-        }
-    });
-    addTransactionButtonPanel.add(addTransactionButton);
+        JPanel addTransactionButtonPanel = new JPanel();
+        addTransactionButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        JButton addTransactionButton = new JButton("Add Transaction");
+        addTransactionButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createTransactionFrame(contentPanel);
+            }
+        });
+        addTransactionButtonPanel.add(addTransactionButton);
 
-    JPanel transactionListPanel = new JPanel();
-    transactionListPanel.setLayout(new BoxLayout(transactionListPanel, BoxLayout.Y_AXIS));
-    transactionListPanel.setBackground(Color.WHITE);
+        JPanel transactionListPanel = new JPanel();
+        transactionListPanel.setLayout(new BoxLayout(transactionListPanel, BoxLayout.Y_AXIS));
+        transactionListPanel.setBackground(Color.WHITE);
 
-    try (Connection connection = getConnection()) {
-        Statement statement = connection.createStatement();
-        String sql = "SELECT * FROM transactions";
-        ResultSet resultSet = statement.executeQuery(sql);
+        try (Connection connection = getConnection()) {
+            Statement statement = connection.createStatement();
+            String sql = "SELECT * FROM transactions";
+            ResultSet resultSet = statement.executeQuery(sql);
 
-        while (resultSet.next()) {
-            int id = resultSet.getInt("id");
-            String type = resultSet.getString("type");
-            double amount = resultSet.getDouble("amount");
-            String description = resultSet.getString("description");
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String type = resultSet.getString("type");
+                double amount = resultSet.getDouble("amount");
+                String description = resultSet.getString("description");
 
-            JPanel transactionPanel = new JPanel();
-            transactionPanel.setLayout(new BorderLayout());
-            transactionPanel.setPreferredSize(new Dimension(450, 80));
-            transactionPanel.setMaximumSize(new Dimension(450, 80));
-            transactionPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-            transactionPanel.setBackground(Color.WHITE);
+                JPanel transactionPanel = new JPanel();
+                transactionPanel.setLayout(new BorderLayout());
+                transactionPanel.setPreferredSize(new Dimension(450, 80));
+                transactionPanel.setMaximumSize(new Dimension(450, 80));
+                transactionPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                transactionPanel.setBackground(Color.WHITE);
 
-            String title = description != null ? description : "Unnamed Transaction";
-            JLabel transactionLabel = new JLabel(title + " - $" + amount, SwingConstants.CENTER);
+                String title = description != null ? description : "Unnamed Transaction";
+                JLabel transactionLabel = new JLabel("$" + amount, SwingConstants.CENTER);
 
-            if ("Income".equalsIgnoreCase(type)) {
-                transactionLabel.setForeground(Color.GREEN);
-            } else if ("Expense".equalsIgnoreCase(type)) {
-                transactionLabel.setForeground(Color.RED);
+                if ("Income".equalsIgnoreCase(type)) {
+                    transactionLabel.setForeground(Color.GREEN);
+                } else if ("Expense".equalsIgnoreCase(type)) {
+                    transactionLabel.setForeground(Color.RED);
+                }
+
+                JPanel buttonPanel = new JPanel();
+                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+                JButton viewDetailsButton = new JButton("View Details");
+                JButton deleteButton = new JButton("Delete");
+
+                viewDetailsButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        String details = "Type: " + type + "\n"
+                                + "Amount: $" + amount + "\n"
+                                + "Description: " + (description != null ? description : "N/A");
+                        JOptionPane.showMessageDialog(contentPanel, details, "Transaction Details", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                });
+
+                deleteButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        try (Connection connection = getConnection()) {
+                            String deleteSQL = "DELETE FROM transactions WHERE id = " + id;
+                            Statement deleteStatement = connection.createStatement();
+                            int rowsDeleted = deleteStatement.executeUpdate(deleteSQL);
+
+                            if (rowsDeleted > 0) {
+                                JOptionPane.showMessageDialog(null, "Transaction deleted successfully!");
+                                showTransactions(contentPanel);
+                            } else {
+                                JOptionPane.showMessageDialog(null, "Error deleting transaction.");
+                            }
+                        } catch (SQLException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                });
+
+                buttonPanel.add(viewDetailsButton);
+                buttonPanel.add(deleteButton);
+
+                transactionPanel.add(transactionLabel, BorderLayout.CENTER);
+                transactionPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+                transactionListPanel.add(transactionPanel);
             }
 
-            JPanel buttonPanel = new JPanel();
-            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-            JButton viewDetailsButton = new JButton("View Details");
-            JButton deleteButton = new JButton("Delete");
-
-            viewDetailsButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    JOptionPane.showMessageDialog(null, "Viewing details for: " + title);
-                }
-            });
-
-            deleteButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    try (Connection connection = getConnection()) {
-                        String deleteSQL = "DELETE FROM transactions WHERE id = " + id;
-                        Statement deleteStatement = connection.createStatement();
-                        int rowsDeleted = deleteStatement.executeUpdate(deleteSQL);
-
-                        if (rowsDeleted > 0) {
-                            JOptionPane.showMessageDialog(null, "Transaction deleted successfully!");
-                            showTransactions(contentPanel);
-                        } else {
-                            JOptionPane.showMessageDialog(null, "Error deleting transaction.");
-                        }
-                    } catch (SQLException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            });
-
-            buttonPanel.add(viewDetailsButton);
-            buttonPanel.add(deleteButton);
-
-            transactionPanel.add(transactionLabel, BorderLayout.CENTER);
-            transactionPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-            transactionListPanel.add(transactionPanel);
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
-        resultSet.close();
-        statement.close();
-    } catch (SQLException e) {
-        e.printStackTrace();
+        JLabel balanceLabel = new JLabel("Balance: $" + calculateTotalBalance(), SwingConstants.CENTER);
+        balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        balanceLabel.setForeground(Color.BLACK);
+        balanceLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
+
+        transactionsBox.add(headingPanel, BorderLayout.NORTH);
+        transactionsBox.add(addTransactionButtonPanel, BorderLayout.NORTH);
+
+        JScrollPane transactionScrollPane = new JScrollPane(transactionListPanel);
+        transactionsBox.add(transactionScrollPane, BorderLayout.CENTER);
+
+        transactionsBox.add(balanceLabel, BorderLayout.SOUTH);
+
+        JScrollPane mainScrollPane = new JScrollPane(transactionsBox);
+
+        contentPanel.removeAll();
+        contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
-
-    JLabel balanceLabel = new JLabel("Balance: $" + calculateTotalBalance(), SwingConstants.CENTER);
-    balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
-    balanceLabel.setForeground(Color.BLACK);
-    balanceLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
-
-    transactionsBox.add(headingPanel, BorderLayout.NORTH);
-    transactionsBox.add(addTransactionButtonPanel, BorderLayout.NORTH);
-
-    JScrollPane transactionScrollPane = new JScrollPane(transactionListPanel);
-    transactionsBox.add(transactionScrollPane, BorderLayout.CENTER);
-
-    transactionsBox.add(balanceLabel, BorderLayout.SOUTH);
-
-    JScrollPane mainScrollPane = new JScrollPane(transactionsBox);
-
-    contentPanel.removeAll();
-    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
-
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
-
-
-
-
 
     private static void createTransactionFrame(JPanel contentPanel) {
         JFrame transactionFrame = new JFrame("Create Transaction");
@@ -442,112 +441,111 @@ private static void showTransactions(JPanel contentPanel) {
     }
 
     private static void showBudgets(JPanel contentPanel) {
-    contentPanel.removeAll();
+        contentPanel.removeAll();
 
-    JPanel budgetsBox = new JPanel();
-    budgetsBox.setLayout(new BorderLayout());
-    budgetsBox.setBackground(Color.WHITE);
-    budgetsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-    budgetsBox.setPreferredSize(new Dimension(600, 500));
+        JPanel budgetsBox = new JPanel();
+        budgetsBox.setLayout(new BorderLayout());
+        budgetsBox.setBackground(Color.WHITE);
+        budgetsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+        budgetsBox.setPreferredSize(new Dimension(600, 500));
 
-    JPanel headingPanel = new JPanel();
-    JLabel headingLabel = new JLabel("Budgets", SwingConstants.CENTER);
-    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
-    headingPanel.add(headingLabel);
-    headingPanel.setBackground(Color.WHITE);
+        JPanel headingPanel = new JPanel();
+        JLabel headingLabel = new JLabel("Budgets", SwingConstants.CENTER);
+        headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        headingPanel.add(headingLabel);
+        headingPanel.setBackground(Color.WHITE);
 
-    JPanel addBudgetButtonPanel = new JPanel();
-    addBudgetButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-    JButton addBudgetButton = new JButton("Add New Budget");
-    addBudgetButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            createBudgetFrame(contentPanel);
-        }
-    });
-    addBudgetButtonPanel.add(addBudgetButton);
+        JPanel addBudgetButtonPanel = new JPanel();
+        addBudgetButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        JButton addBudgetButton = new JButton("Add New Budget");
+        addBudgetButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createBudgetFrame(contentPanel);
+            }
+        });
+        addBudgetButtonPanel.add(addBudgetButton);
 
-    JPanel budgetsPanel = new JPanel();
-    budgetsPanel.setLayout(new BoxLayout(budgetsPanel, BoxLayout.Y_AXIS));
-    budgetsPanel.setBackground(Color.WHITE);
+        JPanel budgetsPanel = new JPanel();
+        budgetsPanel.setLayout(new BoxLayout(budgetsPanel, BoxLayout.Y_AXIS));
+        budgetsPanel.setBackground(Color.WHITE);
 
-    try (Connection connection = getConnection()) {
-        Statement statement = connection.createStatement();
-        String sql = "SELECT * FROM budgets";
-        ResultSet resultSet = statement.executeQuery(sql);
+        try (Connection connection = getConnection()) {
+            Statement statement = connection.createStatement();
+            String sql = "SELECT * FROM budgets";
+            ResultSet resultSet = statement.executeQuery(sql);
 
-        while (resultSet.next()) {
-            int id = resultSet.getInt("id");
-            String name = resultSet.getString("name");
-            double maxLimit = resultSet.getDouble("maxLimit");
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double maxLimit = resultSet.getDouble("maxLimit");
 
-            double totalTransactions = 0.0;
+                double totalTransactions = 0.0;
 
-            try (Statement transactionStatement = connection.createStatement()) {
-                String transactionSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + id;
-                ResultSet transactionResultSet = transactionStatement.executeQuery(transactionSql);
+                try (Statement transactionStatement = connection.createStatement()) {
+                    String transactionSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + id;
+                    ResultSet transactionResultSet = transactionStatement.executeQuery(transactionSql);
 
-                if (transactionResultSet.next()) {
-                    totalTransactions = transactionResultSet.getDouble("total");
+                    if (transactionResultSet.next()) {
+                        totalTransactions = transactionResultSet.getDouble("total");
+                    }
+
+                    transactionResultSet.close();
                 }
 
-                transactionResultSet.close();
+                double remainingAmount = maxLimit - totalTransactions;
+
+                JPanel budgetPanel = new JPanel();
+                budgetPanel.setLayout(new BorderLayout());
+                budgetPanel.setPreferredSize(new Dimension(450, 80));
+                budgetPanel.setMaximumSize(new Dimension(450, 80));
+                budgetPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                budgetPanel.setBackground(Color.WHITE);
+
+                JLabel budgetLabel = new JLabel(
+                        String.format("%s - Max Limit: $%.2f, Remaining: $%.2f", name, maxLimit, remainingAmount),
+                        SwingConstants.CENTER
+                );
+
+                JPanel buttonPanel = new JPanel();
+                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+                JButton deleteButton = new JButton("Delete");
+
+                deleteButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        deleteBudget(id);
+                        showBudgets(contentPanel);
+                    }
+                });
+
+                buttonPanel.add(deleteButton);
+
+                budgetPanel.add(budgetLabel, BorderLayout.CENTER);
+                budgetPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+                budgetsPanel.add(budgetPanel);
             }
 
-            double remainingAmount = maxLimit - totalTransactions;
-
-            JPanel budgetPanel = new JPanel();
-            budgetPanel.setLayout(new BorderLayout());
-            budgetPanel.setPreferredSize(new Dimension(450, 80));
-            budgetPanel.setMaximumSize(new Dimension(450, 80));
-            budgetPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-            budgetPanel.setBackground(Color.WHITE);
-
-            JLabel budgetLabel = new JLabel(
-                    String.format("%s - Max Limit: $%.2f, Remaining: $%.2f", name, maxLimit, remainingAmount),
-                    SwingConstants.CENTER
-            );
-
-            JPanel buttonPanel = new JPanel();
-            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-            JButton deleteButton = new JButton("Delete");
-
-            deleteButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    deleteBudget(id);
-                    showBudgets(contentPanel);
-                }
-            });
-
-            buttonPanel.add(deleteButton);
-
-            budgetPanel.add(budgetLabel, BorderLayout.CENTER);
-            budgetPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-            budgetsPanel.add(budgetPanel);
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
-        resultSet.close();
-        statement.close();
-    } catch (SQLException e) {
-        e.printStackTrace();
+        JScrollPane budgetsScrollPane = new JScrollPane(budgetsPanel);
+        budgetsBox.add(headingPanel, BorderLayout.NORTH);
+        budgetsBox.add(addBudgetButtonPanel, BorderLayout.NORTH);
+        budgetsBox.add(budgetsScrollPane, BorderLayout.CENTER);
+
+        JScrollPane mainScrollPane = new JScrollPane(budgetsBox);
+
+        contentPanel.removeAll();
+        contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
-
-    JScrollPane budgetsScrollPane = new JScrollPane(budgetsPanel);
-    budgetsBox.add(headingPanel, BorderLayout.NORTH);
-    budgetsBox.add(addBudgetButtonPanel, BorderLayout.NORTH);
-    budgetsBox.add(budgetsScrollPane, BorderLayout.CENTER);
-
-    JScrollPane mainScrollPane = new JScrollPane(budgetsBox);
-
-    contentPanel.removeAll();
-    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
-
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
-
 
     private static void createBudgetFrame(JPanel contentPanel) {
         JFrame addBudgetFrame = new JFrame("Add New Budget");
@@ -651,106 +649,105 @@ private static void showTransactions(JPanel contentPanel) {
     }
 
     private static void showGoals(JPanel contentPanel) {
-    contentPanel.removeAll();
+        contentPanel.removeAll();
 
-    JPanel goalsBox = new JPanel();
-    goalsBox.setLayout(new BorderLayout());
-    goalsBox.setBackground(Color.WHITE);
-    goalsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-    goalsBox.setPreferredSize(new Dimension(600, 500));
+        JPanel goalsBox = new JPanel();
+        goalsBox.setLayout(new BorderLayout());
+        goalsBox.setBackground(Color.WHITE);
+        goalsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+        goalsBox.setPreferredSize(new Dimension(600, 500));
 
-    JPanel headingPanel = new JPanel();
-    JLabel headingLabel = new JLabel("Goals", SwingConstants.CENTER);
-    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
-    headingPanel.add(headingLabel);
-    headingPanel.setBackground(Color.WHITE);
+        JPanel headingPanel = new JPanel();
+        JLabel headingLabel = new JLabel("Goals", SwingConstants.CENTER);
+        headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        headingPanel.add(headingLabel);
+        headingPanel.setBackground(Color.WHITE);
 
-    JPanel addGoalButtonPanel = new JPanel();
-    addGoalButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-    JButton addGoalButton = new JButton("Add New Goal");
-    addGoalButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            createGoalFrame(contentPanel);
+        JPanel addGoalButtonPanel = new JPanel();
+        addGoalButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        JButton addGoalButton = new JButton("Add New Goal");
+        addGoalButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createGoalFrame(contentPanel);
+            }
+        });
+        addGoalButtonPanel.add(addGoalButton);
+
+        JPanel goalsPanel = new JPanel();
+        goalsPanel.setLayout(new BoxLayout(goalsPanel, BoxLayout.Y_AXIS));
+        goalsPanel.setBackground(Color.WHITE);
+
+        try (Connection connection = getConnection()) {
+            Statement statement = connection.createStatement();
+            String sql = "SELECT * FROM goals WHERE isCompleted = false";
+            ResultSet resultSet = statement.executeQuery(sql);
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double target = resultSet.getDouble("target");
+
+                JPanel goalPanel = new JPanel();
+                goalPanel.setLayout(new BorderLayout());
+                goalPanel.setPreferredSize(new Dimension(450, 80));
+                goalPanel.setMaximumSize(new Dimension(450, 80));
+                goalPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                goalPanel.setBackground(Color.WHITE);
+
+                JLabel goalLabel = new JLabel(name + " - Target: $" + target, SwingConstants.CENTER);
+                goalLabel.setForeground(Color.RED);
+
+                JPanel buttonPanel = new JPanel();
+                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+                JButton completeButton = new JButton("Complete Goal");
+                completeButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        completeGoal(id);
+                        contentPanel.removeAll();
+                        showGoals(contentPanel);
+                    }
+                });
+
+                JButton deleteButton = new JButton("Delete Goal");
+                deleteButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        deleteGoal(id);
+                        contentPanel.removeAll();
+                        showGoals(contentPanel);
+                    }
+                });
+
+                buttonPanel.add(completeButton);
+                buttonPanel.add(deleteButton);
+
+                goalPanel.add(goalLabel, BorderLayout.CENTER);
+                goalPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+                goalsPanel.add(goalPanel);
+            }
+
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-    });
-    addGoalButtonPanel.add(addGoalButton);
 
-    JPanel goalsPanel = new JPanel();
-    goalsPanel.setLayout(new BoxLayout(goalsPanel, BoxLayout.Y_AXIS));
-    goalsPanel.setBackground(Color.WHITE);
+        JScrollPane goalsScrollPane = new JScrollPane(goalsPanel);
+        goalsBox.add(headingPanel, BorderLayout.NORTH);
+        goalsBox.add(addGoalButtonPanel, BorderLayout.NORTH);
+        goalsBox.add(goalsScrollPane, BorderLayout.CENTER);
 
-    try (Connection connection = getConnection()) {
-        Statement statement = connection.createStatement();
-        String sql = "SELECT * FROM goals WHERE isCompleted = false";
-        ResultSet resultSet = statement.executeQuery(sql);
+        JScrollPane mainScrollPane = new JScrollPane(goalsBox);
 
-        while (resultSet.next()) {
-            int id = resultSet.getInt("id");
-            String name = resultSet.getString("name");
-            double target = resultSet.getDouble("target");
+        contentPanel.removeAll();
+        contentPanel.add(mainScrollPane, BorderLayout.CENTER);
 
-            JPanel goalPanel = new JPanel();
-            goalPanel.setLayout(new BorderLayout());
-            goalPanel.setPreferredSize(new Dimension(450, 80));
-            goalPanel.setMaximumSize(new Dimension(450, 80));
-            goalPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-            goalPanel.setBackground(Color.WHITE);
-
-            JLabel goalLabel = new JLabel(name + " - Target: $" + target, SwingConstants.CENTER);
-            goalLabel.setForeground(Color.RED);
-
-            JPanel buttonPanel = new JPanel();
-            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-            JButton completeButton = new JButton("Complete Goal");
-            completeButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    completeGoal(id);
-                    contentPanel.removeAll();
-                    showGoals(contentPanel);
-                }
-            });
-
-            JButton deleteButton = new JButton("Delete Goal");
-            deleteButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    deleteGoal(id);
-                    contentPanel.removeAll();
-                    showGoals(contentPanel);
-                }
-            });
-
-            buttonPanel.add(completeButton);
-            buttonPanel.add(deleteButton);
-
-            goalPanel.add(goalLabel, BorderLayout.CENTER);
-            goalPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-            goalsPanel.add(goalPanel);
-        }
-
-        resultSet.close();
-        statement.close();
-    } catch (SQLException e) {
-        e.printStackTrace();
+        contentPanel.revalidate();
+        contentPanel.repaint();
     }
-
-    JScrollPane goalsScrollPane = new JScrollPane(goalsPanel);
-    goalsBox.add(headingPanel, BorderLayout.NORTH);
-    goalsBox.add(addGoalButtonPanel, BorderLayout.NORTH);
-    goalsBox.add(goalsScrollPane, BorderLayout.CENTER);
-
-    JScrollPane mainScrollPane = new JScrollPane(goalsBox);
-
-    contentPanel.removeAll();
-    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
-
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
-
 
     private static void deleteGoal(int id) {
         try (Connection connection = getConnection()) {
@@ -879,71 +876,71 @@ private static void showTransactions(JPanel contentPanel) {
         }
     }
 
-private static void showSettings(JPanel contentPanel) {
-    contentPanel.removeAll();
+    private static void showSettings(JPanel contentPanel) {
+        contentPanel.removeAll();
 
-    JPanel settingsContainer = new JPanel(new GridBagLayout());
-    settingsContainer.setBackground(Color.LIGHT_GRAY);
+        JPanel settingsContainer = new JPanel(new GridBagLayout());
+        settingsContainer.setBackground(Color.LIGHT_GRAY);
 
-    JPanel settingsBox = new JPanel();
-    settingsBox.setLayout(new BorderLayout());
-    settingsBox.setPreferredSize(new Dimension(400, 300));
-    settingsBox.setBackground(Color.WHITE);
-    settingsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+        JPanel settingsBox = new JPanel();
+        settingsBox.setLayout(new BorderLayout());
+        settingsBox.setPreferredSize(new Dimension(400, 300));
+        settingsBox.setBackground(Color.WHITE);
+        settingsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
 
-    JLabel headingLabel = new JLabel("Settings", SwingConstants.CENTER);
-    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
-    headingLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        JLabel headingLabel = new JLabel("Settings", SwingConstants.CENTER);
+        headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        headingLabel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
 
-    JPanel buttonsPanel = new JPanel();
-    buttonsPanel.setLayout(new GridLayout(2, 1, 10, 10));
-    buttonsPanel.setBackground(Color.WHITE);
-    buttonsPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
+        JPanel buttonsPanel = new JPanel();
+        buttonsPanel.setLayout(new GridLayout(2, 1, 10, 10));
+        buttonsPanel.setBackground(Color.WHITE);
+        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(20, 50, 20, 50));
 
-    JButton deleteUserDataButton = new JButton("Delete All User Data");
-    JButton sendFeedbackButton = new JButton("Send Feedback");
+        JButton deleteUserDataButton = new JButton("Delete All User Data");
+        JButton sendFeedbackButton = new JButton("Send Feedback");
 
-    deleteUserDataButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            int confirmation = JOptionPane.showConfirmDialog(
-                    null,
-                    "Are you sure you want to delete all your data? This action cannot be reversed.",
-                    "Delete Confirmation",
-                    JOptionPane.YES_NO_OPTION
-            );
+        deleteUserDataButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int confirmation = JOptionPane.showConfirmDialog(
+                        null,
+                        "Are you sure you want to delete all your data? This action cannot be reversed.",
+                        "Delete Confirmation",
+                        JOptionPane.YES_NO_OPTION
+                );
 
-            if (confirmation == JOptionPane.YES_OPTION) {
-                deleteAllUserData();
-                JOptionPane.showMessageDialog(null, "All user data has been deleted successfully.");
+                if (confirmation == JOptionPane.YES_OPTION) {
+                    deleteAllUserData();
+                    JOptionPane.showMessageDialog(null, "All user data has been deleted successfully.");
+                }
             }
-        }
-    });
+        });
 
-    sendFeedbackButton.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            try {
-                Desktop.getDesktop().browse(new URI("https://example.com/feedback"));
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(null, "Unable to open the feedback page.");
+        sendFeedbackButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    Desktop.getDesktop().browse(new URI("https://example.com/feedback"));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Unable to open the feedback page.");
+                }
             }
-        }
-    });
+        });
 
-    buttonsPanel.add(deleteUserDataButton);
-    buttonsPanel.add(sendFeedbackButton);
+        buttonsPanel.add(deleteUserDataButton);
+        buttonsPanel.add(sendFeedbackButton);
 
-    settingsBox.add(headingLabel, BorderLayout.NORTH);
-    settingsBox.add(buttonsPanel, BorderLayout.CENTER);
+        settingsBox.add(headingLabel, BorderLayout.NORTH);
+        settingsBox.add(buttonsPanel, BorderLayout.CENTER);
 
-    settingsContainer.add(settingsBox);
+        settingsContainer.add(settingsBox);
 
-    contentPanel.add(settingsContainer, BorderLayout.CENTER);
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
+        contentPanel.add(settingsContainer, BorderLayout.CENTER);
+        contentPanel.revalidate();
+        contentPanel.repaint();
+    }
 
     private static void deleteAllUserData() {
         try (Connection connection = getConnection()) {
