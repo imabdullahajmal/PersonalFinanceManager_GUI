@@ -157,7 +157,6 @@ private static double calculateTotalRemainingSpendableAmount() {
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
                 contentLabel.setText("Settings Content");
-                contentPanel.add(balanceLabel, BorderLayout.NORTH);
                 showSettings(contentPanel);
             }
         });
@@ -656,7 +655,6 @@ private static void showGoals(JPanel contentPanel) {
             buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
 
             JButton completeButton = new JButton("Complete Goal");
-
             completeButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -666,7 +664,18 @@ private static void showGoals(JPanel contentPanel) {
                 }
             });
 
+            JButton deleteButton = new JButton("Delete Goal");
+            deleteButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    deleteGoal(id);
+                    contentPanel.removeAll();
+                    showGoals(contentPanel);
+                }
+            });
+
             buttonPanel.add(completeButton);
+            buttonPanel.add(deleteButton);
 
             goalPanel.add(goalLabel, BorderLayout.CENTER);
             goalPanel.add(buttonPanel, BorderLayout.SOUTH);
@@ -685,6 +694,25 @@ private static void showGoals(JPanel contentPanel) {
     contentPanel.revalidate();
     contentPanel.repaint();
 }
+
+private static void deleteGoal(int id) {
+    try (Connection connection = getConnection()) {
+        String deleteSQL = "DELETE FROM goals WHERE id = " + id;
+        Statement deleteStatement = connection.createStatement();
+        int rowsDeleted = deleteStatement.executeUpdate(deleteSQL);
+
+        if (rowsDeleted > 0) {
+            JOptionPane.showMessageDialog(null, "Goal deleted successfully!");
+        } else {
+            JOptionPane.showMessageDialog(null, "Error deleting goal.");
+        }
+
+        deleteStatement.close();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+}
+
 
 private static void createGoalFrame(JPanel contentPanel) {
     JFrame goalFrame = new JFrame("Create New Goal");
