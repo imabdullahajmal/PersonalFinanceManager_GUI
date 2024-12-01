@@ -164,110 +164,141 @@ public class PersonalFinanceManager_GUI {
         frame.setVisible(true);
     }
 
-    private static void showTransactions(JPanel contentPanel) {
-        JPanel transactionsPanel = new JPanel();
-        transactionsPanel.setLayout(new BoxLayout(transactionsPanel, BoxLayout.Y_AXIS));
+private static void showTransactions(JPanel contentPanel) {
+    JPanel transactionsPanel = new JPanel();
+    transactionsPanel.setLayout(new BorderLayout()); // Using BorderLayout for the main layout
 
-        JButton addTransactionButton = new JButton("Add Transaction");
-        addTransactionButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createTransactionFrame(contentPanel);
+    JPanel transactionsBox = new JPanel();
+    transactionsBox.setLayout(new BorderLayout());
+    transactionsBox.setBackground(Color.WHITE);
+    transactionsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+    transactionsBox.setPreferredSize(new Dimension(600, 500)); // Fixed size for the white box
+
+    JPanel headingPanel = new JPanel();
+    JLabel headingLabel = new JLabel("Transactions", SwingConstants.CENTER);
+    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+    headingPanel.add(headingLabel);
+    headingPanel.setBackground(Color.WHITE);
+
+    JPanel addTransactionButtonPanel = new JPanel();
+    addTransactionButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+    JButton addTransactionButton = new JButton("Add Transaction");
+    addTransactionButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            createTransactionFrame(contentPanel);
+        }
+    });
+    addTransactionButtonPanel.add(addTransactionButton);
+
+    JPanel transactionListPanel = new JPanel();
+    transactionListPanel.setLayout(new BoxLayout(transactionListPanel, BoxLayout.Y_AXIS));
+    transactionListPanel.setBackground(Color.WHITE);
+
+    try (Connection connection = getConnection()) {
+        Statement statement = connection.createStatement();
+        String sql = "SELECT * FROM transactions";
+        ResultSet resultSet = statement.executeQuery(sql);
+
+        while (resultSet.next()) {
+            int id = resultSet.getInt("id");
+            String type = resultSet.getString("type");
+            double amount = resultSet.getDouble("amount");
+            String description = resultSet.getString("description");
+
+            JPanel transactionPanel = new JPanel();
+            transactionPanel.setLayout(new BorderLayout());
+            transactionPanel.setPreferredSize(new Dimension(450, 80));
+            transactionPanel.setMaximumSize(new Dimension(450, 80));
+            transactionPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            transactionPanel.setBackground(Color.WHITE);
+
+            String title = description != null ? description : "Unnamed Transaction";
+
+            JLabel transactionLabel = new JLabel(title + " - $" + amount, SwingConstants.CENTER);
+            if ("Income".equalsIgnoreCase(type)) {
+                transactionLabel.setForeground(Color.GREEN);
+            } else if ("Expense".equalsIgnoreCase(type)) {
+                transactionLabel.setForeground(Color.RED);
             }
-        });
 
-        transactionsPanel.add(addTransactionButton);
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-        try (Connection connection = getConnection()) {
-            Statement statement = connection.createStatement();
-            String sql = "SELECT * FROM transactions";
-            ResultSet resultSet = statement.executeQuery(sql);
+            JButton viewDetailsButton = new JButton("View Details");
+            JButton deleteButton = new JButton("Delete");
 
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String type = resultSet.getString("type");
-                double amount = resultSet.getDouble("amount");
-                String description = resultSet.getString("description");
-
-                JPanel transactionPanel = new JPanel();
-                transactionPanel.setLayout(new BorderLayout());
-                transactionPanel.setPreferredSize(new Dimension(500, 120));
-                transactionPanel.setMaximumSize(new Dimension(500, 120));
-                transactionPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-
-                String title = description != null ? description : "Unnamed Transaction";
-
-                JPanel titlePanel = new JPanel();
-                titlePanel.setLayout(new BorderLayout());
-                JLabel transactionLabel = new JLabel(title + " - $" + amount, SwingConstants.CENTER);
-
-                if ("Income".equalsIgnoreCase(type)) {
-                    transactionLabel.setForeground(Color.GREEN);
-                } else if ("Expense".equalsIgnoreCase(type)) {
-                    transactionLabel.setForeground(Color.RED);
+            viewDetailsButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    JOptionPane.showMessageDialog(null, "Viewing details for: " + title);
                 }
+            });
 
-                titlePanel.add(transactionLabel, BorderLayout.CENTER);
+            deleteButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try (Connection connection = getConnection()) {
+                        String deleteSQL = "DELETE FROM transactions WHERE id = " + id;
+                        Statement deleteStatement = connection.createStatement();
+                        int rowsDeleted = deleteStatement.executeUpdate(deleteSQL);
 
-                JPanel buttonPanel = new JPanel();
-                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
-                JButton viewDetailsButton = new JButton("View Details");
-                JButton deleteButton = new JButton("Delete");
-
-                viewDetailsButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        JOptionPane.showMessageDialog(null, "Viewing details for: " + title);
-                    }
-                });
-
-                deleteButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        try (Connection connection = getConnection()) {
-                            String deleteSQL = "DELETE FROM transactions WHERE id = " + id;
-                            Statement deleteStatement = connection.createStatement();
-                            int rowsDeleted = deleteStatement.executeUpdate(deleteSQL);
-
-                            if (rowsDeleted > 0) {
-                                JOptionPane.showMessageDialog(null, "Transaction deleted successfully!");
-                                showTransactions(contentPanel);
-                            } else {
-                                JOptionPane.showMessageDialog(null, "Error deleting transaction.");
-                            }
-                        } catch (SQLException ex) {
-                            ex.printStackTrace();
+                        if (rowsDeleted > 0) {
+                            JOptionPane.showMessageDialog(null, "Transaction deleted successfully!");
+                            showTransactions(contentPanel);
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Error deleting transaction.");
                         }
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
                     }
-                });
+                }
+            });
 
-                buttonPanel.add(viewDetailsButton);
-                buttonPanel.add(deleteButton);
+            buttonPanel.add(viewDetailsButton);
+            buttonPanel.add(deleteButton);
 
-                transactionPanel.add(titlePanel, BorderLayout.CENTER);
-                transactionPanel.add(buttonPanel, BorderLayout.SOUTH);
+            transactionPanel.add(transactionLabel, BorderLayout.CENTER);
+            transactionPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-                transactionsPanel.add(transactionPanel);
-            }
-
-            resultSet.close();
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            transactionListPanel.add(transactionPanel);
         }
 
-        JLabel balanceLabel = new JLabel("Balance: $" + calculateTotalBalance(), SwingConstants.CENTER);
-        balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        balanceLabel.setForeground(Color.BLACK);
-
-        JScrollPane scrollPane = new JScrollPane(transactionsPanel);
-        contentPanel.removeAll();
-        contentPanel.add(balanceLabel, BorderLayout.NORTH);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        resultSet.close();
+        statement.close();
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+
+    JLabel balanceLabel = new JLabel("Balance: $" + calculateTotalBalance(), SwingConstants.CENTER);
+    balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
+    balanceLabel.setForeground(Color.BLACK);
+    balanceLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 20, 0));
+
+    transactionsBox.add(headingPanel, BorderLayout.NORTH);
+    transactionsBox.add(addTransactionButtonPanel, BorderLayout.NORTH);
+    
+    //Had no idea how to make the box scrollable so used CHATGPT for assistance.
+
+    JScrollPane transactionScrollPane = new JScrollPane(transactionListPanel);
+    transactionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    transactionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    transactionsBox.add(transactionScrollPane, BorderLayout.CENTER);
+
+    transactionsBox.add(balanceLabel, BorderLayout.SOUTH);
+
+    JScrollPane mainScrollPane = new JScrollPane(transactionsBox);
+    mainScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    mainScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+    contentPanel.removeAll();
+    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+    contentPanel.revalidate();
+    contentPanel.repaint();
+}
+
+
+
 
     private static void createTransactionFrame(JPanel contentPanel) {
         JFrame transactionFrame = new JFrame("Create Transaction");
