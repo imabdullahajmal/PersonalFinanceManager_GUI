@@ -56,7 +56,7 @@ public class PersonalFinanceManager_GUI {
         double totalRemainingSpendable = 0.0;
 
         try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {
-
+//Used CHATGPT to generate this query
             String sql = "SELECT budgets.id, budgets.maxLimit, "
                     + "COALESCE(SUM(CASE WHEN transactions.type = 'Income' THEN transactions.amount ELSE 0 END), 0) AS totalIncome, "
                     + "COALESCE(SUM(CASE WHEN transactions.type = 'Expense' THEN transactions.amount ELSE 0 END), 0) AS totalExpense "
@@ -166,13 +166,13 @@ public class PersonalFinanceManager_GUI {
 
 private static void showTransactions(JPanel contentPanel) {
     JPanel transactionsPanel = new JPanel();
-    transactionsPanel.setLayout(new BorderLayout()); // Using BorderLayout for the main layout
+    transactionsPanel.setLayout(new BorderLayout());
 
     JPanel transactionsBox = new JPanel();
     transactionsBox.setLayout(new BorderLayout());
     transactionsBox.setBackground(Color.WHITE);
     transactionsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-    transactionsBox.setPreferredSize(new Dimension(600, 500)); // Fixed size for the white box
+    transactionsBox.setPreferredSize(new Dimension(600, 500));
 
     JPanel headingPanel = new JPanel();
     JLabel headingLabel = new JLabel("Transactions", SwingConstants.CENTER);
