@@ -214,8 +214,8 @@ private static void showTransactions(JPanel contentPanel) {
             transactionPanel.setBackground(Color.WHITE);
 
             String title = description != null ? description : "Unnamed Transaction";
-
             JLabel transactionLabel = new JLabel(title + " - $" + amount, SwingConstants.CENTER);
+
             if ("Income".equalsIgnoreCase(type)) {
                 transactionLabel.setForeground(Color.GREEN);
             } else if ("Expense".equalsIgnoreCase(type)) {
@@ -224,7 +224,6 @@ private static void showTransactions(JPanel contentPanel) {
 
             JPanel buttonPanel = new JPanel();
             buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
             JButton viewDetailsButton = new JButton("View Details");
             JButton deleteButton = new JButton("Delete");
 
@@ -277,25 +276,21 @@ private static void showTransactions(JPanel contentPanel) {
 
     transactionsBox.add(headingPanel, BorderLayout.NORTH);
     transactionsBox.add(addTransactionButtonPanel, BorderLayout.NORTH);
-    
-    //Had no idea how to make the box scrollable so used CHATGPT for assistance.
 
     JScrollPane transactionScrollPane = new JScrollPane(transactionListPanel);
-    transactionScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-    transactionScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
     transactionsBox.add(transactionScrollPane, BorderLayout.CENTER);
 
     transactionsBox.add(balanceLabel, BorderLayout.SOUTH);
 
     JScrollPane mainScrollPane = new JScrollPane(transactionsBox);
-    mainScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-    mainScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
     contentPanel.removeAll();
     contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+
     contentPanel.revalidate();
     contentPanel.repaint();
 }
+
 
 
 
@@ -447,89 +442,112 @@ private static void showTransactions(JPanel contentPanel) {
     }
 
     private static void showBudgets(JPanel contentPanel) {
-        contentPanel.removeAll();
+    contentPanel.removeAll();
 
-        JPanel budgetsPanel = new JPanel();
-        budgetsPanel.setLayout(new BoxLayout(budgetsPanel, BoxLayout.Y_AXIS));
+    JPanel budgetsBox = new JPanel();
+    budgetsBox.setLayout(new BorderLayout());
+    budgetsBox.setBackground(Color.WHITE);
+    budgetsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+    budgetsBox.setPreferredSize(new Dimension(600, 500));
 
-        JButton addBudgetButton = new JButton("Add New Budget");
-        addBudgetButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createBudgetFrame(contentPanel);
-            }
-        });
+    JPanel headingPanel = new JPanel();
+    JLabel headingLabel = new JLabel("Budgets", SwingConstants.CENTER);
+    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+    headingPanel.add(headingLabel);
+    headingPanel.setBackground(Color.WHITE);
 
-        budgetsPanel.add(addBudgetButton);
+    JPanel addBudgetButtonPanel = new JPanel();
+    addBudgetButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+    JButton addBudgetButton = new JButton("Add New Budget");
+    addBudgetButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            createBudgetFrame(contentPanel);
+        }
+    });
+    addBudgetButtonPanel.add(addBudgetButton);
 
-        try (Connection connection = getConnection()) {
-            Statement statement = connection.createStatement();
-            String sql = "SELECT * FROM budgets";
-            ResultSet resultSet = statement.executeQuery(sql);
+    JPanel budgetsPanel = new JPanel();
+    budgetsPanel.setLayout(new BoxLayout(budgetsPanel, BoxLayout.Y_AXIS));
+    budgetsPanel.setBackground(Color.WHITE);
 
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                double maxLimit = resultSet.getDouble("maxLimit");
+    try (Connection connection = getConnection()) {
+        Statement statement = connection.createStatement();
+        String sql = "SELECT * FROM budgets";
+        ResultSet resultSet = statement.executeQuery(sql);
 
-                double totalTransactions = 0.0;
+        while (resultSet.next()) {
+            int id = resultSet.getInt("id");
+            String name = resultSet.getString("name");
+            double maxLimit = resultSet.getDouble("maxLimit");
 
-                try (Statement transactionStatement = connection.createStatement()) {
-                    String transactionSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + id;
-                    ResultSet transactionResultSet = transactionStatement.executeQuery(transactionSql);
+            double totalTransactions = 0.0;
 
-                    if (transactionResultSet.next()) {
-                        totalTransactions = transactionResultSet.getDouble("total");
-                    }
+            try (Statement transactionStatement = connection.createStatement()) {
+                String transactionSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + id;
+                ResultSet transactionResultSet = transactionStatement.executeQuery(transactionSql);
 
-                    transactionResultSet.close();
+                if (transactionResultSet.next()) {
+                    totalTransactions = transactionResultSet.getDouble("total");
                 }
 
-                double remainingAmount = maxLimit - totalTransactions;
-
-                JPanel budgetPanel = new JPanel();
-                budgetPanel.setLayout(new BorderLayout());
-                budgetPanel.setPreferredSize(new Dimension(500, 120));
-                budgetPanel.setMaximumSize(new Dimension(500, 120));
-                budgetPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
-
-                JLabel budgetLabel = new JLabel(
-                        String.format("%s - Max Limit: $%.2f, Remaining: $%.2f", name, maxLimit, remainingAmount),
-                        SwingConstants.CENTER
-                );
-
-                JPanel buttonPanel = new JPanel();
-                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
-                JButton deleteButton = new JButton("Delete");
-
-                deleteButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        deleteBudget(id);
-                        showBudgets(contentPanel);
-                    }
-                });
-
-                buttonPanel.add(deleteButton);
-
-                budgetPanel.add(budgetLabel, BorderLayout.CENTER);
-                budgetPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-                budgetsPanel.add(budgetPanel);
+                transactionResultSet.close();
             }
 
-            resultSet.close();
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            double remainingAmount = maxLimit - totalTransactions;
+
+            JPanel budgetPanel = new JPanel();
+            budgetPanel.setLayout(new BorderLayout());
+            budgetPanel.setPreferredSize(new Dimension(450, 80));
+            budgetPanel.setMaximumSize(new Dimension(450, 80));
+            budgetPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            budgetPanel.setBackground(Color.WHITE);
+
+            JLabel budgetLabel = new JLabel(
+                    String.format("%s - Max Limit: $%.2f, Remaining: $%.2f", name, maxLimit, remainingAmount),
+                    SwingConstants.CENTER
+            );
+
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+            JButton deleteButton = new JButton("Delete");
+
+            deleteButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    deleteBudget(id);
+                    showBudgets(contentPanel);
+                }
+            });
+
+            buttonPanel.add(deleteButton);
+
+            budgetPanel.add(budgetLabel, BorderLayout.CENTER);
+            budgetPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+            budgetsPanel.add(budgetPanel);
         }
 
-        JScrollPane scrollPane = new JScrollPane(budgetsPanel);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        resultSet.close();
+        statement.close();
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+
+    JScrollPane budgetsScrollPane = new JScrollPane(budgetsPanel);
+    budgetsBox.add(headingPanel, BorderLayout.NORTH);
+    budgetsBox.add(addBudgetButtonPanel, BorderLayout.NORTH);
+    budgetsBox.add(budgetsScrollPane, BorderLayout.CENTER);
+
+    JScrollPane mainScrollPane = new JScrollPane(budgetsBox);
+
+    contentPanel.removeAll();
+    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+
+    contentPanel.revalidate();
+    contentPanel.repaint();
+}
+
 
     private static void createBudgetFrame(JPanel contentPanel) {
         JFrame addBudgetFrame = new JFrame("Add New Budget");
@@ -633,81 +651,106 @@ private static void showTransactions(JPanel contentPanel) {
     }
 
     private static void showGoals(JPanel contentPanel) {
-        JPanel goalsPanel = new JPanel();
-        goalsPanel.setLayout(new BoxLayout(goalsPanel, BoxLayout.Y_AXIS));
+    contentPanel.removeAll();
 
-        JButton addGoalButton = new JButton("Add New Goal");
-        addGoalButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                createGoalFrame(contentPanel);
-            }
-        });
+    JPanel goalsBox = new JPanel();
+    goalsBox.setLayout(new BorderLayout());
+    goalsBox.setBackground(Color.WHITE);
+    goalsBox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+    goalsBox.setPreferredSize(new Dimension(600, 500));
 
-        goalsPanel.add(addGoalButton);
+    JPanel headingPanel = new JPanel();
+    JLabel headingLabel = new JLabel("Goals", SwingConstants.CENTER);
+    headingLabel.setFont(new Font("Arial", Font.BOLD, 24));
+    headingPanel.add(headingLabel);
+    headingPanel.setBackground(Color.WHITE);
 
-        try (Connection connection = getConnection()) {
-            Statement statement = connection.createStatement();
-            String sql = "SELECT * FROM goals WHERE isCompleted = false";
-            ResultSet resultSet = statement.executeQuery(sql);
+    JPanel addGoalButtonPanel = new JPanel();
+    addGoalButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+    JButton addGoalButton = new JButton("Add New Goal");
+    addGoalButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            createGoalFrame(contentPanel);
+        }
+    });
+    addGoalButtonPanel.add(addGoalButton);
 
-            while (resultSet.next()) {
-                int id = resultSet.getInt("id");
-                String name = resultSet.getString("name");
-                double target = resultSet.getDouble("target");
+    JPanel goalsPanel = new JPanel();
+    goalsPanel.setLayout(new BoxLayout(goalsPanel, BoxLayout.Y_AXIS));
+    goalsPanel.setBackground(Color.WHITE);
 
-                JPanel goalPanel = new JPanel();
-                goalPanel.setLayout(new BorderLayout());
-                goalPanel.setPreferredSize(new Dimension(500, 120));
-                goalPanel.setMaximumSize(new Dimension(500, 120));
-                goalPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+    try (Connection connection = getConnection()) {
+        Statement statement = connection.createStatement();
+        String sql = "SELECT * FROM goals WHERE isCompleted = false";
+        ResultSet resultSet = statement.executeQuery(sql);
 
-                JLabel goalLabel = new JLabel(name + " - Target: $" + target, SwingConstants.CENTER);
-                goalLabel.setForeground(Color.RED);
+        while (resultSet.next()) {
+            int id = resultSet.getInt("id");
+            String name = resultSet.getString("name");
+            double target = resultSet.getDouble("target");
 
-                JPanel buttonPanel = new JPanel();
-                buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+            JPanel goalPanel = new JPanel();
+            goalPanel.setLayout(new BorderLayout());
+            goalPanel.setPreferredSize(new Dimension(450, 80));
+            goalPanel.setMaximumSize(new Dimension(450, 80));
+            goalPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            goalPanel.setBackground(Color.WHITE);
 
-                JButton completeButton = new JButton("Complete Goal");
-                completeButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        completeGoal(id);
-                        contentPanel.removeAll();
-                        showGoals(contentPanel);
-                    }
-                });
+            JLabel goalLabel = new JLabel(name + " - Target: $" + target, SwingConstants.CENTER);
+            goalLabel.setForeground(Color.RED);
 
-                JButton deleteButton = new JButton("Delete Goal");
-                deleteButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        deleteGoal(id);
-                        contentPanel.removeAll();
-                        showGoals(contentPanel);
-                    }
-                });
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+            JButton completeButton = new JButton("Complete Goal");
+            completeButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    completeGoal(id);
+                    contentPanel.removeAll();
+                    showGoals(contentPanel);
+                }
+            });
 
-                buttonPanel.add(completeButton);
-                buttonPanel.add(deleteButton);
+            JButton deleteButton = new JButton("Delete Goal");
+            deleteButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    deleteGoal(id);
+                    contentPanel.removeAll();
+                    showGoals(contentPanel);
+                }
+            });
 
-                goalPanel.add(goalLabel, BorderLayout.CENTER);
-                goalPanel.add(buttonPanel, BorderLayout.SOUTH);
+            buttonPanel.add(completeButton);
+            buttonPanel.add(deleteButton);
 
-                goalsPanel.add(goalPanel);
-            }
+            goalPanel.add(goalLabel, BorderLayout.CENTER);
+            goalPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-            resultSet.close();
-            statement.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            goalsPanel.add(goalPanel);
         }
 
-        JScrollPane scrollPane = new JScrollPane(goalsPanel);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        resultSet.close();
+        statement.close();
+    } catch (SQLException e) {
+        e.printStackTrace();
     }
+
+    JScrollPane goalsScrollPane = new JScrollPane(goalsPanel);
+    goalsBox.add(headingPanel, BorderLayout.NORTH);
+    goalsBox.add(addGoalButtonPanel, BorderLayout.NORTH);
+    goalsBox.add(goalsScrollPane, BorderLayout.CENTER);
+
+    JScrollPane mainScrollPane = new JScrollPane(goalsBox);
+
+    contentPanel.removeAll();
+    contentPanel.add(mainScrollPane, BorderLayout.CENTER);
+
+    contentPanel.revalidate();
+    contentPanel.repaint();
+}
+
 
     private static void deleteGoal(int id) {
         try (Connection connection = getConnection()) {
