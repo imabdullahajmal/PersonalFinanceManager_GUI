@@ -52,6 +52,46 @@ public class PersonalFinanceManager_GUI {
     }
     return totalBalance;
 }
+    
+    private static double calculateTotalRemainingSpendableAmount() {
+    double totalRemainingAmount = 0.0;
+
+    try (Connection connection = getConnection()) {
+        Statement statement = connection.createStatement();
+        
+        String budgetQuery = "SELECT id, maxLimit FROM budgets";
+        ResultSet budgetResultSet = statement.executeQuery(budgetQuery);
+
+        while (budgetResultSet.next()) {
+            int budgetId = budgetResultSet.getInt("id");
+            double maxLimit = budgetResultSet.getDouble("maxLimit");
+
+            String transactionQuery = "SELECT SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END) AS totalExpense, "
+                                    + "SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END) AS totalIncome "
+                                    + "FROM transactions WHERE budget_id = " + budgetId;
+
+            ResultSet transactionResultSet = statement.executeQuery(transactionQuery);
+            double totalExpense = 0.0;
+            double totalIncome = 0.0;
+
+            if (transactionResultSet.next()) {
+                totalExpense = transactionResultSet.getDouble("totalExpense");
+                totalIncome = transactionResultSet.getDouble("totalIncome");
+            }
+
+            double remainingAmount = maxLimit - (totalExpense - totalIncome);
+            totalRemainingAmount += remainingAmount;
+        }
+
+        budgetResultSet.close();
+        statement.close();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    return totalRemainingAmount;
+}
+
 
 
 
@@ -722,9 +762,34 @@ private static void createGoalFrame(JPanel contentPanel) {
 
 private static void completeGoal(int id) {
     try (Connection connection = getConnection()) {
+        Statement statement = connection.createStatement();
+        String goalQuery = "SELECT name, target FROM goals WHERE id = " + id;
+        ResultSet goalResultSet = statement.executeQuery(goalQuery);
+
+        if (!goalResultSet.next()) {
+            JOptionPane.showMessageDialog(null, "Goal not found.");
+            return;
+        }
+
+        String goalName = goalResultSet.getString("name");
+        double goalTarget = goalResultSet.getDouble("target");
+
+        goalResultSet.close();
+        double totalBalance = calculateTotalBalance();
+        double totalRemainingSpendable = calculateTotalRemainingSpendableAmount();
+        double availableBalance = totalBalance - totalRemainingSpendable;
+
+        if (availableBalance < goalTarget) {
+            JOptionPane.showMessageDialog(null, "Insufficient balance to complete this goal.");
+            return;
+        }
+
+        String transactionSQL = "INSERT INTO transactions (type, amount, description, budget_id) VALUES "
+                                + "('Expense', " + goalTarget + ", '" + goalName + "', NULL)";
+        statement.executeUpdate(transactionSQL);
+
         String updateSQL = "UPDATE goals SET isCompleted = true WHERE id = " + id;
-        Statement updateStatement = connection.createStatement();
-        int rowsUpdated = updateStatement.executeUpdate(updateSQL);
+        int rowsUpdated = statement.executeUpdate(updateSQL);
 
         if (rowsUpdated > 0) {
             JOptionPane.showMessageDialog(null, "Goal completed successfully!");
@@ -732,7 +797,7 @@ private static void completeGoal(int id) {
             JOptionPane.showMessageDialog(null, "Error completing goal.");
         }
 
-        updateStatement.close();
+        statement.close();
     } catch (SQLException ex) {
         ex.printStackTrace();
     }
