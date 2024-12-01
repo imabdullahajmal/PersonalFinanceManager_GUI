@@ -56,7 +56,7 @@ public class PersonalFinanceManager_GUI {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BorderLayout());
 
-        JLabel balanceLabel = new JLabel("Balance: $5000.00", SwingConstants.CENTER);
+        JLabel balanceLabel = new JLabel("Balance: $0.00", SwingConstants.CENTER);
         balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
         balanceLabel.setForeground(Color.BLACK);
 
@@ -225,68 +225,66 @@ private static void showTransactions(JPanel contentPanel) {
 private static void createTransactionFrame(JPanel contentPanel) {
     JFrame transactionFrame = new JFrame("Create Transaction");
     transactionFrame.setSize(400, 300);
-    
+
     JPanel panel = new JPanel();
     panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-    
+
     JLabel typeLabel = new JLabel("Transaction Type:");
     JRadioButton incomeButton = new JRadioButton("Income");
     JRadioButton expenseButton = new JRadioButton("Expense");
     ButtonGroup group = new ButtonGroup();
     group.add(incomeButton);
     group.add(expenseButton);
-    
+
     JLabel amountLabel = new JLabel("Amount:");
     JTextField amountField = new JTextField(10);
-    
+
     JLabel descriptionLabel = new JLabel("Description:");
     JTextField descriptionField = new JTextField(10);
-    
+
     JLabel budgetLabel = new JLabel("Budget:");
     JComboBox<String> budgetComboBox = new JComboBox<>();
-    
+
     loadBudgets(budgetComboBox);
     budgetComboBox.addItem("No Budget");
-    
+
     JButton submitButton = new JButton("Submit");
-    
+
     panel.add(typeLabel);
     panel.add(incomeButton);
     panel.add(expenseButton);
-    
+
     panel.add(amountLabel);
     panel.add(amountField);
-    
+
     panel.add(descriptionLabel);
     panel.add(descriptionField);
-    
+
     panel.add(budgetLabel);
     panel.add(budgetComboBox);
-    
+
     panel.add(submitButton);
-    
+
     submitButton.addActionListener(new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             try {
                 String type = incomeButton.isSelected() ? "Income" : "Expense";
                 double amount = Double.parseDouble(amountField.getText());
-                
+
                 if (amount <= 0) {
                     JOptionPane.showMessageDialog(transactionFrame, "Amount must be greater than zero.");
                     return;
                 }
-                
+
                 String description = descriptionField.getText();
                 String selectedBudget = (String) budgetComboBox.getSelectedItem();
-                
+
                 Integer selectedBudgetId = null;
-                if ("No Budget".equals(selectedBudget)) {
-                    selectedBudgetId = null;
-                } else {
+                if (!"No Budget".equals(selectedBudget)) {
                     selectedBudgetId = getBudgetIdByName(selectedBudget);
                 }
-                
+
                 double totalTransactionsInBudget = 0.0;
                 if (selectedBudgetId != null) {
                     try (Connection connection = getConnection()) {
@@ -296,45 +294,37 @@ private static void createTransactionFrame(JPanel contentPanel) {
                         if (resultSet.next()) {
                             totalTransactionsInBudget = resultSet.getDouble("total");
                         }
-                    } catch (SQLException ex) {
-                        ex.printStackTrace();
                     }
-                    
+
                     double budgetLimit = getBudgetLimit(selectedBudgetId);
-                    
                     if (totalTransactionsInBudget + amount > budgetLimit) {
                         JOptionPane.showMessageDialog(transactionFrame, "Transaction exceeds budget limit.");
                         return;
                     }
                 }
-                
-                String insertSql = "INSERT INTO transactions (type, amount, description, budget_id) VALUES ('" 
-                                    + type + "', " + amount + ", '" + description + "', " 
+
+                String insertSql = "INSERT INTO transactions (type, amount, description, budget_id) VALUES ('"
+                                    + type + "', " + amount + ", '" + description + "', "
                                     + (selectedBudgetId != null ? selectedBudgetId : "NULL") + ")";
-                try (Connection connection = getConnection()) {
-                    Statement statement = connection.createStatement();
+                try (Connection connection = getConnection();
+                     Statement statement = connection.createStatement()) {
                     statement.executeUpdate(insertSql);
-                    
-                    if (selectedBudgetId != null) {
-                        String updateSql = "UPDATE budgets SET totalAmount = totalAmount + " + amount 
-                                           + " WHERE id = " + selectedBudgetId;
-                        statement.executeUpdate(updateSql);
-                    }
-                    
                     JOptionPane.showMessageDialog(transactionFrame, "Transaction added successfully.");
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    showTransactions(contentPanel);
                 }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(transactionFrame, "Please enter a valid amount.");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         }
     });
-    
+
     transactionFrame.add(panel);
     transactionFrame.setLocationRelativeTo(null);
     transactionFrame.setVisible(true);
 }
+
 
 
 private static void loadBudgets(JComboBox<String> budgetComboBox) {
@@ -411,13 +401,31 @@ private static int getBudgetIdByName(String budgetName) {
             String name = resultSet.getString("name");
             double maxLimit = resultSet.getDouble("maxLimit");
 
+            double totalTransactions = 0.0;
+
+            try (Statement transactionStatement = connection.createStatement()) {
+                String transactionSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + id;
+                ResultSet transactionResultSet = transactionStatement.executeQuery(transactionSql);
+
+                if (transactionResultSet.next()) {
+                    totalTransactions = transactionResultSet.getDouble("total");
+                }
+
+                transactionResultSet.close();
+            }
+
+            double remainingAmount = maxLimit - totalTransactions;
+
             JPanel budgetPanel = new JPanel();
             budgetPanel.setLayout(new BorderLayout());
             budgetPanel.setPreferredSize(new Dimension(500, 120));
             budgetPanel.setMaximumSize(new Dimension(500, 120));
             budgetPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
 
-            JLabel budgetLabel = new JLabel(name + " - Max Limit: $" + maxLimit, SwingConstants.CENTER);
+            JLabel budgetLabel = new JLabel(
+                String.format("%s - Max Limit: $%.2f, Remaining: $%.2f", name, maxLimit, remainingAmount),
+                SwingConstants.CENTER
+            );
 
             JPanel buttonPanel = new JPanel();
             buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
@@ -451,6 +459,7 @@ private static int getBudgetIdByName(String budgetName) {
     contentPanel.revalidate();
     contentPanel.repaint();
 }
+
 
 
 private static void createBudgetFrame(JPanel contentPanel) {
@@ -535,19 +544,28 @@ private static void createBudgetFrame(JPanel contentPanel) {
 
 
 
-private static void deleteBudget(int id) {
+private static void deleteBudget(int budgetId) {
     try (Connection connection = getConnection()) {
-        String sql = "DELETE FROM budgets WHERE id = " + id;
-        Statement statement = connection.createStatement();
-        statement.executeUpdate(sql);
-
-        JOptionPane.showMessageDialog(null, "Budget deleted successfully.");
+        connection.setAutoCommit(false);
+        try {
+            Statement statement = connection.createStatement();
+            String deleteTransactionsSql = "DELETE FROM transactions WHERE budget_id = " + budgetId;
+            statement.executeUpdate(deleteTransactionsSql);
+            String deleteBudgetSql = "DELETE FROM budgets WHERE id = " + budgetId;
+            statement.executeUpdate(deleteBudgetSql);
+            connection.commit();
+            JOptionPane.showMessageDialog(null, "Budget and its transactions deleted successfully.");
+        } catch (SQLException e) {
+            connection.rollback();
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error deleting budget and its transactions.");
+        } finally {
+            connection.setAutoCommit(true);
+        }
     } catch (SQLException e) {
         e.printStackTrace();
-        JOptionPane.showMessageDialog(null, "Error deleting budget.", "Error", JOptionPane.ERROR_MESSAGE);
     }
 }
-
 
 
 
