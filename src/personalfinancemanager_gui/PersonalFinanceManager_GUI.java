@@ -53,43 +53,37 @@ public class PersonalFinanceManager_GUI {
     return totalBalance;
 }
     
-    private static double calculateTotalRemainingSpendableAmount() {
-    double totalRemainingAmount = 0.0;
+private static double calculateTotalRemainingSpendableAmount() {
+    double totalRemainingSpendable = 0.0;
 
-    try (Connection connection = getConnection()) {
-        Statement statement = connection.createStatement();
-        
-        String budgetQuery = "SELECT id, maxLimit FROM budgets";
-        ResultSet budgetResultSet = statement.executeQuery(budgetQuery);
+    try (Connection connection = getConnection();
+         Statement statement = connection.createStatement()) {
 
-        while (budgetResultSet.next()) {
-            int budgetId = budgetResultSet.getInt("id");
-            double maxLimit = budgetResultSet.getDouble("maxLimit");
+        String sql = "SELECT budgets.id, budgets.maxLimit, " +
+                     "COALESCE(SUM(CASE WHEN transactions.type = 'Income' THEN transactions.amount ELSE 0 END), 0) AS totalIncome, " +
+                     "COALESCE(SUM(CASE WHEN transactions.type = 'Expense' THEN transactions.amount ELSE 0 END), 0) AS totalExpense " +
+                     "FROM budgets " +
+                     "LEFT JOIN transactions ON budgets.id = transactions.budget_id " +
+                     "GROUP BY budgets.id, budgets.maxLimit";
 
-            String transactionQuery = "SELECT SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END) AS totalExpense, "
-                                    + "SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END) AS totalIncome "
-                                    + "FROM transactions WHERE budget_id = " + budgetId;
+        ResultSet resultSet = statement.executeQuery(sql);
 
-            ResultSet transactionResultSet = statement.executeQuery(transactionQuery);
-            double totalExpense = 0.0;
-            double totalIncome = 0.0;
+        while (resultSet.next()) {
+            double maxLimit = resultSet.getDouble("maxLimit");
+            double totalIncome = resultSet.getDouble("totalIncome");
+            double totalExpense = resultSet.getDouble("totalExpense");
 
-            if (transactionResultSet.next()) {
-                totalExpense = transactionResultSet.getDouble("totalExpense");
-                totalIncome = transactionResultSet.getDouble("totalIncome");
-            }
-
-            double remainingAmount = maxLimit - (totalExpense - totalIncome);
-            totalRemainingAmount += remainingAmount;
+            double remaining = maxLimit - (totalExpense - totalIncome);
+            totalRemainingSpendable += Math.max(remaining, 0);
         }
 
-        budgetResultSet.close();
-        statement.close();
+        resultSet.close();
+
     } catch (SQLException e) {
         e.printStackTrace();
     }
 
-    return totalRemainingAmount;
+    return totalRemainingSpendable;
 }
 
 
