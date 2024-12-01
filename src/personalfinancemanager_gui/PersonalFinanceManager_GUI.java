@@ -30,6 +30,29 @@ public class PersonalFinanceManager_GUI {
 }
     
     static double totalBalance;
+    
+    private static double calculateTotalBalance() {
+    double totalBalance = 0.0;
+    try (Connection connection = getConnection();
+         Statement statement = connection.createStatement()) {
+        String sql = "SELECT type, amount FROM transactions";
+        ResultSet resultSet = statement.executeQuery(sql);
+
+        while (resultSet.next()) {
+            String type = resultSet.getString("type");
+            double amount = resultSet.getDouble("amount");
+            if ("Income".equalsIgnoreCase(type)) {
+                totalBalance += amount;
+            } else if ("Expense".equalsIgnoreCase(type)) {
+                totalBalance -= amount;
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return totalBalance;
+}
+
 
 
     public static void main(String[] args) {
@@ -58,7 +81,7 @@ public class PersonalFinanceManager_GUI {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BorderLayout());
 
-        JLabel balanceLabel = new JLabel("Balance: $"+totalBalance, SwingConstants.CENTER);
+        JLabel balanceLabel = new JLabel("Balance: $"+calculateTotalBalance(), SwingConstants.CENTER);
         balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
         balanceLabel.setForeground(Color.BLACK);
 
@@ -126,7 +149,6 @@ private static void showTransactions(JPanel contentPanel) {
 
     transactionsPanel.add(addTransactionButton);
 
-    double balance = 0.0;
 
     try (Connection connection = getConnection()) {
         Statement statement = connection.createStatement();
@@ -153,10 +175,8 @@ private static void showTransactions(JPanel contentPanel) {
 
             if ("Income".equalsIgnoreCase(type)) {
                 transactionLabel.setForeground(Color.GREEN);
-                balance += amount;
             } else if ("Expense".equalsIgnoreCase(type)) {
                 transactionLabel.setForeground(Color.RED);
-                balance -= amount;
             }
 
             titlePanel.add(transactionLabel, BorderLayout.CENTER);
@@ -209,9 +229,8 @@ private static void showTransactions(JPanel contentPanel) {
         e.printStackTrace();
     }
     
-    totalBalance = balance;
 
-    JLabel balanceLabel = new JLabel("Balance: $" + totalBalance, SwingConstants.CENTER);
+    JLabel balanceLabel = new JLabel("Balance: $" + calculateTotalBalance(), SwingConstants.CENTER);
     balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
     balanceLabel.setForeground(Color.BLACK);
 
@@ -280,12 +299,12 @@ private static void createTransactionFrame(JPanel contentPanel) {
                 }
 
                 if ("Expense".equals(type)) {
-                    if (totalBalance <= 0) {
+                    if (calculateTotalBalance() <= 0) {
                         JOptionPane.showMessageDialog(transactionFrame, "Insufficient overall balance.");
                         return;
                     }
 
-                    if (amount > totalBalance) {
+                    if (amount > calculateTotalBalance()) {
                         JOptionPane.showMessageDialog(transactionFrame, "This transaction would exceed the overall balance.");
                         return;
                     }
