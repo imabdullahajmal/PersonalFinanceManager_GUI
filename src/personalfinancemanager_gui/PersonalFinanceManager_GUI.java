@@ -28,6 +28,8 @@ public class PersonalFinanceManager_GUI {
     
     return DriverManager.getConnection(url, username, password);
 }
+    
+    static double totalBalance;
 
 
     public static void main(String[] args) {
@@ -56,13 +58,13 @@ public class PersonalFinanceManager_GUI {
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BorderLayout());
 
-        JLabel balanceLabel = new JLabel("Balance: $0.00", SwingConstants.CENTER);
+        JLabel balanceLabel = new JLabel("Balance: $"+totalBalance, SwingConstants.CENTER);
         balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
         balanceLabel.setForeground(Color.BLACK);
 
         contentPanel.add(balanceLabel, BorderLayout.NORTH);
 
-        JLabel contentLabel = new JLabel("Select a section", SwingConstants.CENTER);
+        JLabel contentLabel = new JLabel("--- Welcome ---", SwingConstants.CENTER);
         contentPanel.add(contentLabel, BorderLayout.CENTER);
 
         transactionsButton.addActionListener(new ActionListener() {
@@ -80,7 +82,6 @@ public class PersonalFinanceManager_GUI {
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
                 contentLabel.setText("Budgets Content");
-                contentPanel.add(balanceLabel, BorderLayout.NORTH);
                 showBudgets(contentPanel);
             }
         });
@@ -90,7 +91,6 @@ public class PersonalFinanceManager_GUI {
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
                 contentLabel.setText("Goals Content");
-                contentPanel.add(balanceLabel, BorderLayout.NORTH);
                 showGoals(contentPanel);
             }
         });
@@ -208,8 +208,10 @@ private static void showTransactions(JPanel contentPanel) {
     } catch (SQLException e) {
         e.printStackTrace();
     }
+    
+    totalBalance = balance;
 
-    JLabel balanceLabel = new JLabel("Balance: $" + balance, SwingConstants.CENTER);
+    JLabel balanceLabel = new JLabel("Balance: $" + totalBalance, SwingConstants.CENTER);
     balanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
     balanceLabel.setForeground(Color.BLACK);
 
@@ -245,8 +247,8 @@ private static void createTransactionFrame(JPanel contentPanel) {
     JLabel budgetLabel = new JLabel("Budget:");
     JComboBox<String> budgetComboBox = new JComboBox<>();
 
-    loadBudgets(budgetComboBox);
     budgetComboBox.addItem("No Budget");
+    loadBudgets(budgetComboBox);
 
     JButton submitButton = new JButton("Submit");
 
@@ -277,6 +279,18 @@ private static void createTransactionFrame(JPanel contentPanel) {
                     return;
                 }
 
+                if ("Expense".equals(type)) {
+                    if (totalBalance <= 0) {
+                        JOptionPane.showMessageDialog(transactionFrame, "Insufficient overall balance.");
+                        return;
+                    }
+
+                    if (amount > totalBalance) {
+                        JOptionPane.showMessageDialog(transactionFrame, "This transaction would exceed the overall balance.");
+                        return;
+                    }
+                }
+
                 String description = descriptionField.getText();
                 String selectedBudget = (String) budgetComboBox.getSelectedItem();
 
@@ -285,30 +299,17 @@ private static void createTransactionFrame(JPanel contentPanel) {
                     selectedBudgetId = getBudgetIdByName(selectedBudget);
                 }
 
-                double totalTransactionsInBudget = 0.0;
-                if (selectedBudgetId != null) {
-                    try (Connection connection = getConnection()) {
-                        Statement statement = connection.createStatement();
-                        String checkSql = "SELECT SUM(amount) AS total FROM transactions WHERE budget_id = " + selectedBudgetId;
-                        ResultSet resultSet = statement.executeQuery(checkSql);
-                        if (resultSet.next()) {
-                            totalTransactionsInBudget = resultSet.getDouble("total");
-                        }
-                    }
-
-                    double budgetLimit = getBudgetLimit(selectedBudgetId);
-                    if (totalTransactionsInBudget + amount > budgetLimit) {
-                        JOptionPane.showMessageDialog(transactionFrame, "Transaction exceeds budget limit.");
-                        return;
-                    }
-                }
-
                 String insertSql = "INSERT INTO transactions (type, amount, description, budget_id) VALUES ('"
-                                    + type + "', " + amount + ", '" + description + "', "
-                                    + (selectedBudgetId != null ? selectedBudgetId : "NULL") + ")";
+                        + type + "', " + amount + ", '" + description + "', "
+                        + (selectedBudgetId != null ? selectedBudgetId : "NULL") + ")";
                 try (Connection connection = getConnection();
                      Statement statement = connection.createStatement()) {
                     statement.executeUpdate(insertSql);
+                    if ("Income".equals(type)) {
+                        totalBalance += amount;
+                    } else {
+                        totalBalance -= amount;
+                    }
                     JOptionPane.showMessageDialog(transactionFrame, "Transaction added successfully.");
                     showTransactions(contentPanel);
                 }
@@ -324,7 +325,6 @@ private static void createTransactionFrame(JPanel contentPanel) {
     transactionFrame.setLocationRelativeTo(null);
     transactionFrame.setVisible(true);
 }
-
 
 
 private static void loadBudgets(JComboBox<String> budgetComboBox) {
