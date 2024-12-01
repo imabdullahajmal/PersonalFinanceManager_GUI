@@ -97,10 +97,14 @@ public class PersonalFinanceManager_GUI {
         JButton goalsButton = new JButton("Goals");
         JButton settingsButton = new JButton("Settings");
 
-        transactionsButton.setBackground(Color.RED);
-        budgetsButton.setBackground(Color.GREEN);
-        goalsButton.setBackground(Color.BLUE);
-        settingsButton.setBackground(Color.YELLOW);
+        transactionsButton.setBackground(Color.BLACK);
+        transactionsButton.setForeground(Color.WHITE);
+        budgetsButton.setBackground(Color.BLACK);
+        budgetsButton.setForeground(Color.WHITE);
+        goalsButton.setBackground(Color.BLACK);
+        goalsButton.setForeground(Color.WHITE);
+        settingsButton.setBackground(Color.BLACK);
+        settingsButton.setForeground(Color.WHITE);
 
         navbar.add(transactionsButton);
         navbar.add(budgetsButton);
@@ -123,7 +127,6 @@ public class PersonalFinanceManager_GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
-                contentLabel.setText("Transactions Content");
                 contentPanel.add(balanceLabel, BorderLayout.NORTH);
                 showTransactions(contentPanel);
             }
@@ -142,7 +145,6 @@ public class PersonalFinanceManager_GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
-                contentLabel.setText("Goals Content");
                 showGoals(contentPanel);
             }
         });
@@ -151,7 +153,6 @@ public class PersonalFinanceManager_GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 contentPanel.removeAll();
-                contentLabel.setText("Settings Content");
                 showSettings(contentPanel);
             }
         });
@@ -921,7 +922,7 @@ public class PersonalFinanceManager_GUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    Desktop.getDesktop().browse(new URI("https://example.com/feedback"));
+                    Desktop.getDesktop().browse(new URI("https://forms.gle/1txLaVC2KXtcNNk78"));
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(null, "Unable to open the feedback page.");
