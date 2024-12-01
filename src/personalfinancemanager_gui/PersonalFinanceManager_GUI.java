@@ -589,6 +589,16 @@ private static void showGoals(JPanel contentPanel) {
     JPanel goalsPanel = new JPanel();
     goalsPanel.setLayout(new BoxLayout(goalsPanel, BoxLayout.Y_AXIS));
 
+    JButton addGoalButton = new JButton("Add New Goal");
+    addGoalButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            createGoalFrame(contentPanel);
+        }
+    });
+
+    goalsPanel.add(addGoalButton);
+
     try (Connection connection = getConnection()) {
         Statement statement = connection.createStatement();
         String sql = "SELECT * FROM goals WHERE isCompleted = false";
@@ -641,6 +651,73 @@ private static void showGoals(JPanel contentPanel) {
     contentPanel.revalidate();
     contentPanel.repaint();
 }
+
+private static void createGoalFrame(JPanel contentPanel) {
+    JFrame goalFrame = new JFrame("Create New Goal");
+    goalFrame.setSize(400, 300);
+
+    JPanel panel = new JPanel();
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+    JLabel nameLabel = new JLabel("Goal Name:");
+    JTextField nameField = new JTextField(10);
+
+    JLabel targetLabel = new JLabel("Target Amount:");
+    JTextField targetField = new JTextField(10);
+
+    JButton submitButton = new JButton("Submit");
+
+    panel.add(nameLabel);
+    panel.add(nameField);
+
+    panel.add(targetLabel);
+    panel.add(targetField);
+
+    panel.add(submitButton);
+
+    submitButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String name = nameField.getText();
+            double target = 0.0;
+
+            try {
+                target = Double.parseDouble(targetField.getText());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(goalFrame, "Please enter a valid target amount.");
+                return;
+            }
+
+            if (name.isEmpty() || target <= 0) {
+                JOptionPane.showMessageDialog(goalFrame, "Please provide valid goal name and target.");
+                return;
+            }
+
+            try (Connection connection = getConnection()) {
+                Statement statement = connection.createStatement();
+                String insertSQL = "INSERT INTO goals (name, target, isCompleted) VALUES ('"
+                        + name + "', " + target + ", false)";
+                int rowsInserted = statement.executeUpdate(insertSQL);
+                if (rowsInserted > 0) {
+                    JOptionPane.showMessageDialog(goalFrame, "Goal added successfully!");
+                    contentPanel.removeAll();
+                    showGoals(contentPanel);
+                } else {
+                    JOptionPane.showMessageDialog(goalFrame, "Error adding goal.");
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+
+            goalFrame.dispose();
+        }
+    });
+
+    goalFrame.add(panel);
+    goalFrame.setLocationRelativeTo(null);
+    goalFrame.setVisible(true);
+}
+
 
 
 private static void completeGoal(int id) {
